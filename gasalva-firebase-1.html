@@ -271,7 +271,7 @@
         <div class="chip" id="searchToggle" style="margin-left:auto;">🔍 Buscar</div>
       </div>
       <div id="searchBox" style="display:none; gap:8px; margin-top:8px; flex-wrap:wrap;">
-        <input type="text" id="searchNombre" placeholder="Nombre de la gasolinera" style="flex:1; min-width:140px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;">
+        <input type="text" id="searchNombre" placeholder="Nombre, dirección o zona" style="flex:1; min-width:140px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;">
         <input type="number" id="searchMin" placeholder="Precio mín." style="width:90px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;">
         <input type="number" id="searchMax" placeholder="Precio máx." style="width:90px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;">
       </div>
@@ -397,6 +397,40 @@ let busquedaMin = null;
 let busquedaMax = null;
 
 function fmtQ(v){ return "Q" + Number(v).toFixed(2); }
+
+function normalizarTexto(str){
+  return (str || "")
+    .toString()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quita acentos
+}
+
+// Palabras que deben considerarse equivalentes al buscar (para que "gas" o "estación"
+// encuentren gasolineras aunque el nombre diga "Gasolinera", y viceversa).
+const SINONIMOS_BUSQUEDA = {
+  gas: ['gasolinera','gasolina','combustible','estacion'],
+  gasolina: ['gasolinera','gas','combustible','estacion'],
+  gasolinera: ['gas','gasolina','combustible','estacion'],
+  estacion: ['gasolinera','gas','gasolina','combustible'],
+  combustible: ['gasolinera','gas','gasolina','estacion'],
+  diesel: ['disel','diésel'],
+  super: ['súper','superior'],
+};
+
+function textoBuscableDe(st){
+  return normalizarTexto([st.nombre, st.direccion, st.municipio, st.departamento].filter(Boolean).join(' '));
+}
+
+// Coincide si CADA palabra escrita (o alguno de sus sinónimos) aparece en el texto de la gasolinera.
+function coincideBusqueda(st, consulta){
+  const texto = textoBuscableDe(st);
+  const palabras = normalizarTexto(consulta).split(/\s+/).filter(Boolean);
+  return palabras.every(palabra=>{
+    if(texto.includes(palabra)) return true;
+    const relacionadas = SINONIMOS_BUSQUEDA[palabra] || [];
+    return relacionadas.some(rel => texto.includes(rel));
+  });
+}
 
 function haversineKm(lat1, lng1, lat2, lng2){
   const R = 6371;
@@ -697,8 +731,7 @@ function renderList(){
     arr = arr.filter(st => st.municipio === municipioActivo);
   }
   if(busquedaNombre.trim()){
-    const q = busquedaNombre.trim().toLowerCase();
-    arr = arr.filter(st => st.nombre.toLowerCase().includes(q));
+    arr = arr.filter(st => coincideBusqueda(st, busquedaNombre));
   }
   if(busquedaMin != null || busquedaMax != null){
     arr = arr.filter(st=>{
