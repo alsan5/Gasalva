@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gasalva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2321;
+    --ink-soft:#4A5450;
+    --paper:#F3F1EA;
+    --card:#FFFFFF;
+    --line:#DCD8CC;
+    --amber:#D98A2B;
+    --amber-dark:#8F5A15;
+    --green:#3F7D5C;
+    --green-dark:#254B37;
+    --red:#B84B3C;
+    --red-dark:#6E2A20;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--paper); padding-bottom:150px;}
+  .top-fixed{position:sticky; top:0; z-index:5; background:var(--paper);}
+  .list-scroll{max-height:400px; overflow-y:auto; padding-top:4px; -webkit-overflow-scrolling:touch;}
+  header{
+    padding:28px 20px 20px; border-bottom:1px solid var(--line);
+    background:var(--ink); color:var(--paper);
+  }
+  header .eyebrow{font-size:12px; color:#B7BDB9; letter-spacing:.02em;}
+  header h1{
+    font-family:'Space Grotesk',sans-serif; font-weight:700;
+    font-size:26px; margin:4px 0 2px; letter-spacing:-0.01em;
+  }
+  header p{margin:0; font-size:13px; color:#9AA29D;}
+  .status-bar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 20px; font-size:12px; color:var(--ink-soft);
+  }
+  .refresh{background:none; border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:12px; color:var(--ink-soft); font-family:inherit;}
+  .list{padding:0 16px; display:flex; flex-direction:column; gap:10px;}
+  .filters{padding:2px 16px 14px; display:flex; flex-direction:column; gap:8px;}
+  .chip-row{display:flex; gap:8px;}
+  .chip{
+    font-size:12px; padding:6px 12px; border-radius:20px; border:1px solid var(--line);
+    color:var(--ink-soft); background:var(--card); cursor:pointer;
+  }
+  .chip.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  #fuelChips .chip[data-fuel="regular"], #fuelChips .chip[data-fuel="super"]{ color:var(--red-dark); border-color:var(--red); }
+  #fuelChips .chip[data-fuel="diesel"]{ color:var(--green-dark); border-color:var(--green); }
+  #fuelChips .chip.active[data-fuel="regular"], #fuelChips .chip.active[data-fuel="super"]{ background:#FCEBEB; color:var(--red-dark); border-color:var(--red-dark); }
+  #fuelChips .chip.active[data-fuel="diesel"]{ background:#EAF3DE; color:var(--green-dark); border-color:var(--green-dark); }
+  .dist-tag{font-size:11px; color:var(--ink-soft); margin-top:1px;}
+  .region-boxes{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:2px;}
+  .region-box{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .region-header{display:flex; align-items:center; gap:7px; padding:9px 10px; cursor:pointer;}
+  .region-header-text{min-width:0;}
+  .region-header-text h4{margin:0; font-size:10px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); font-weight:600;}
+  .region-current{margin:2px 0 0; font-size:12.5px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .tri{
+    font-size:9px; color:var(--ink-soft); flex-shrink:0; transition:transform .15s ease;
+    display:inline-block; width:10px;
+  }
+  .region-box.expanded .tri{transform:rotate(90deg);}
+  .region-list{
+    max-height:0; overflow:hidden; transition:max-height .2s ease;
+    border-top:0px solid var(--line);
+  }
+  .region-box.expanded .region-list{max-height:136px; overflow-y:auto; border-top:1px solid var(--line);}
+  .region-item{
+    padding:8px 10px; font-size:12.5px; color:var(--ink-soft); cursor:pointer;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .region-item.active{background:var(--paper); color:var(--ink); font-weight:600;}
+  .region-item.empty-hint{color:var(--ink-soft); font-style:italic; cursor:default; white-space:normal;}
+  .directions-btn{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    width:100%; text-align:center; text-decoration:none;
+    margin-top:10px; background:var(--amber); color:#3A2308; border:none;
+    border-radius:10px; padding:12px; font-weight:700; font-size:14px; font-family:'Inter',sans-serif;
+  }
+  .ranking{padding:0 16px 16px; display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .rank-card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px;}
+  .rank-card h4{margin:0 0 8px; font-size:11px; color:var(--ink-soft); font-weight:600;}
+  .rank-row{display:flex; justify-content:space-between; align-items:baseline; font-size:12px; padding:4px 0;}
+  .rank-row .rn{color:var(--ink); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100px;}
+  .rank-row .rv{color:var(--ink-soft); font-family:'Space Grotesk',sans-serif; flex-shrink:0; margin-left:6px;}
+  .station{
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; display:flex; justify-content:space-between; align-items:center;
+    cursor:pointer;
+  }
+  .station .name{font-weight:600; font-size:15px; margin:0 0 2px;}
+  .station .meta{font-size:12px; color:var(--ink-soft); margin:0;}
+  .price-tag{
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px;
+    padding:6px 12px; text-align:center; min-width:78px;
+    border-radius:20px; color:#fff;
+  }
+  .price-tag small{display:block; font-family:'Inter',sans-serif; font-weight:500; font-size:9px; color:rgba(255,255,255,0.85); text-align:center;}
+  .price-tag.stale{background:var(--line) !important; color:var(--ink-soft) !important;}
+  .price-tag.stale small{color:var(--ink-soft) !important;}
+  .trend{font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:3px; margin-top:2px;}
+  .trend .old{text-decoration:line-through; opacity:0.75;}
+  .trend.up{color:#FCEBEB;}
+  .trend.down{color:#EAF3DE;}
+  .p-cheap{color:var(--green-dark);}
+  .p-mid{color:var(--amber-dark);}
+  .p-high{color:var(--red-dark);}
+  .p-none{color:var(--ink-soft); font-size:13px; font-weight:500;}
+  .fab{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    max-width:440px; width:calc(100% - 40px);
+    background:var(--ink); color:var(--paper); border:none; border-radius:10px;
+    padding:14px; font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
+  }
+  .fab-secondary{
+    position:fixed; bottom:82px; left:50%; transform:translateX(-50%);
+    max-width:440px; width:calc(100% - 40px);
+    background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:10px;
+    padding:10px; font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
+  }
+  .overlay{
+    position:fixed; inset:0; background:rgba(27,35,33,0.5);
+    display:none; align-items:flex-end; justify-content:center; z-index:10;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--paper); width:100%; max-width:480px; border-radius:16px 16px 0 0;
+    padding:20px; max-height:88vh; overflow-y:auto;
+  }
+  .sheet-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;}
+  .sheet-head h2{font-family:'Space Grotesk',sans-serif; font-size:19px; margin:0 0 2px;}
+  .sheet-head p{margin:0; font-size:12px; color:var(--ink-soft);}
+  .close-btn{background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer; line-height:1;}
+  .price-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px;}
+  .price-card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 8px; text-align:center;}
+  .price-card .lbl{font-size:11px; color:var(--ink-soft); margin:0 0 4px;}
+  .price-card .val{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; margin:0;}
+  .price-card .age{font-size:10px; color:var(--ink-soft); margin-top:2px;}
+  h3.section{font-size:12px; text-transform:none; color:var(--ink-soft); margin:0 0 8px; font-weight:600;}
+  .hist-row{display:flex; justify-content:space-between; font-size:13px; padding:7px 0; border-bottom:1px solid var(--line);}
+  .hist-row:last-child{border-bottom:none;}
+  .form-block label{display:block; font-size:12px; color:var(--ink-soft); margin:14px 0 5px;}
+  .fuel-tabs{display:flex; gap:6px;}
+  .fuel-tab{
+    flex:1; text-align:center; padding:9px; border-radius:8px; border:1px solid var(--line);
+    font-size:13px; color:var(--ink-soft); background:var(--card); cursor:pointer;
+  }
+  .fuel-tab.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  input[type=number]{
+    width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line);
+    font-size:15px; font-family:'Space Grotesk',sans-serif; background:var(--card); color:var(--ink);
+  }
+  input[type=number]:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .error{color:var(--red-dark); font-size:12px; margin-top:6px; display:none;}
+  .submit-btn{
+    width:100%; margin-top:20px; background:var(--amber); color:#3A2308; border:none;
+    border-radius:10px; padding:13px; font-weight:600; font-size:14px; font-family:'Inter',sans-serif;
+  }
+  .submit-btn:disabled{opacity:0.6;}
+  .empty{text-align:center; padding:32px 20px; color:var(--ink-soft); font-size:13px;}
+  .add-station-btn{
+    display:block; margin:14px auto 0; background:var(--amber); color:#3A2308; border:none;
+    border-radius:10px; padding:11px 18px; font-weight:600; font-size:13px; font-family:'Inter',sans-serif;
+  }
+  .add-station-row{
+    text-align:center; padding:10px; margin-top:2px;
+  }
+  .admin-row{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:12px; margin-bottom:8px;
+  }
+  .admin-row-title{ margin:0; font-size:13.5px; font-weight:600; }
+  .admin-row-sub{ margin:2px 0 0; font-size:11.5px; color:var(--ink-soft); }
+  .admin-row-actions{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+  .admin-approve, .admin-reject{
+    border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:600; font-family:'Inter',sans-serif;
+  }
+  .admin-approve{ background:#EAF3DE; color:var(--green-dark); }
+  .admin-reject{ background:#FCEBEB; color:var(--red-dark); }
+  .toast{
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:8px;
+    font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none;
+    z-index:999; max-width:90%; text-align:center;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="overlay open" id="authOverlay" style="z-index:20;">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div>
+        <h2>Bienvenido a Gasalva</h2>
+        <p>Elige un alias para reportar precios</p>
+      </div>
+    </div>
+    <div class="form-block">
+      <p id="authStatus" style="font-size:12px; color:var(--ink-soft); margin:0 0 10px;">Conectando con el servidor…</p>
+      <label for="aliasInput">¿Cómo te llamamos?</label>
+      <input type="text" id="aliasInput" placeholder="Ej. Juan R." maxlength="24">
+      <p class="error" id="aliasError">Escribe un alias de al menos 2 letras.</p>
+      <button class="submit-btn" id="submitAliasBtn">Comenzar</button>
+      <p style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:10px;">
+        Tu alias se muestra junto a tus reportes, para que la comunidad sepa que son de una persona real.
+      </p>
+      <p style="font-size:10px; color:var(--line); text-align:center; margin-top:14px;">build-2026-09-12-v8</p>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="top-fixed">
+    <header>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div class="eyebrow" id="headerEyebrow">Retalhuleu</div>
+          <h1>Gasalva</h1>
+          <p>Precios reportados por la comunidad</p>
+        </div>
+        <div id="profileChip" style="display:flex; align-items:center; gap:6px; cursor:pointer; padding:4px 8px 4px 4px; border-radius:20px; background:rgba(255,255,255,0.08);">
+          <span id="profileAvatarMini" style="width:24px; height:24px; border-radius:50%; background:var(--amber); color:#3A2308; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;">?</span>
+          <span id="profileAliasMini" style="font-size:12px; color:var(--paper); max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">…</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="status-bar">
+      <span id="statusText">Cargando gasolineras…</span>
+      <div style="display:flex; gap:6px;">
+        <button class="refresh" id="masterBtn" title="Panel del equipo" style="display:none;">⚙</button>
+        <button class="refresh" id="refreshBtn">Actualizar</button>
+      </div>
+    </div>
+
+    <div class="filters" id="filters">
+      <div class="region-boxes">
+        <div class="region-box" id="deptoBox">
+          <div class="region-header" id="deptoToggle">
+            <span class="tri">▶</span>
+            <div class="region-header-text">
+              <h4>Departamento</h4>
+              <p class="region-current" id="deptoCurrent"></p>
+            </div>
+          </div>
+          <div class="region-list" id="deptoList"></div>
+        </div>
+        <div class="region-box" id="municipioBox">
+          <div class="region-header" id="municipioToggle">
+            <span class="tri">▶</span>
+            <div class="region-header-text">
+              <h4>Municipio</h4>
+              <p class="region-current" id="municipioCurrent"></p>
+            </div>
+          </div>
+          <div class="region-list" id="municipioList"></div>
+        </div>
+      </div>
+      <div class="chip-row" id="sortChips">
+        <div class="chip active" data-sort="precio">Más barato</div>
+        <div class="chip" data-sort="distancia">Más cerca</div>
+        <div class="chip" id="searchToggle" style="margin-left:auto;">🔍 Buscar</div>
+      </div>
+      <div id="searchBox" style="display:none; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <input type="text" id="searchNombre" placeholder="Nombre de la gasolinera" style="flex:1; min-width:140px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;">
+        <input type="number" id="searchMin" placeholder="Precio mín." style="width:90px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;">
+        <input type="number" id="searchMax" placeholder="Precio máx." style="width:90px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;">
+      </div>
+      <div class="chip-row" id="fuelChips">
+        <div class="chip active" data-fuel="regular">Regular</div>
+        <div class="chip" data-fuel="super">Súper</div>
+        <div class="chip" data-fuel="diesel">Diésel</div>
+      </div>
+    </div>
+
+    <div id="ranking" class="ranking"></div>
+  </div>
+
+  <div class="list-scroll">
+    <div class="list" id="list"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <button class="fab-secondary" id="favoritesBtn">★ Favoritas</button>
+  <button class="fab" id="openReport">Reportar un precio</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, onSnapshot, setDoc, updateDoc,
+  increment, arrayUnion, getDocs, deleteDoc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged, signOut, deleteUser
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+/* ======================================================================
+   1) PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE
+   La obtienes en: Firebase Console > Configuración del proyecto >
+   "Tus apps" > ícono web (</>) > "Configuración del SDK".
+   ====================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyA1fmsdmRkTQ4OMEqnjlGJ7BEQ07-Lccx0",
+  authDomain: "gasalva-c83ea.firebaseapp.com",
+  projectId: "gasalva-c83ea",
+  storageBucket: "gasalva-c83ea.firebasestorage.app",
+  messagingSenderId: "269298527408",
+  appId: "1:269298527408:web:4a3f03eb70f023fbc09f75"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
+const estacionesRef = collection(db, "estaciones");
+const usuariosRef = collection(db, "usuarios");
+
+const SEED = [
+
+  {id:"shell-las-palmas", nombre:"Shell Las Palmas", direccion:"Calzada Las Palmas, 5a. Av. A", horario:"6:00 AM - 10:00 PM", lat:14.5434114, lng:-91.6693369, departamento:"Retalhuleu", municipio:"Retalhuleu"},
+  {id:"don-arturo", nombre:"Don Arturo", direccion:"5a. Avenida A", horario:"24 horas", lat:14.5351532, lng:-91.6723871, departamento:"Retalhuleu", municipio:"Retalhuleu"},
+  {id:"don-rolando-san-sebastian", nombre:"Don Rolando San Sebastián", direccion:"Retalhuleu", horario:"24 horas", lat:14.55907, lng:-91.6524803, departamento:"Retalhuleu", municipio:"San Sebastián"},
+  {id:"la-chacara-diesel", nombre:"La Chácara (Diesel)", direccion:"5a Av A", horario:"5:00 AM - 11:00 PM", lat:14.5324937, lng:-91.6750195, departamento:"Retalhuleu", municipio:"Retalhuleu"},
+  {id:"formula-1-trinidad", nombre:"Fórmula 1 Trinidad", direccion:"4a Calle 9-82", horario:"6:00 AM - 10:00 PM", lat:14.531866, lng:-91.6763887, departamento:"Retalhuleu", municipio:"Retalhuleu"},
+  {id:"texaco-villa-san-carlos", nombre:"TEXACO Villa San Carlos", direccion:"Retalhuleu", horario:"24 horas", lat:14.5683557, lng:-91.6711909, departamento:"Retalhuleu", municipio:"Retalhuleu"},
+  {id:"puma-energy-reu", nombre:"PUMA Energy", direccion:"7a Avenida", horario:"24 horas", lat:14.5382, lng:-91.6744, departamento:"Retalhuleu", municipio:"Retalhuleu"},
+  {id:"gasolineras-las-aves", nombre:"Gasolineras Las Aves", direccion:"Blvr. Centenario", horario:null, lat:14.5635047, lng:-91.6860443, departamento:"Retalhuleu", municipio:"Retalhuleu"},
+
+  {id:"honda-san-andres-villa-seca", nombre:"Honda San Andrés Villa Seca", direccion:"Abajo del MP", horario:"24 horas", lat:14.5778037, lng:-91.5855754, departamento:"Retalhuleu", municipio:"San Andrés Villa Seca"},
+  {id:"shell-san-felipe", nombre:"Shell San Felipe", direccion:"2 Calle 9-88", horario:"6:00 AM - 10:00 PM", lat:14.626424, lng:-91.591475, departamento:"Retalhuleu", municipio:"San Felipe"},
+  {id:"pacific-oil-san-felipe", nombre:"Pacific Oil Gas Station", direccion:"San Felipe", horario:"4:00 AM - 9:00 PM", lat:14.6185244, lng:-91.5982715, departamento:"Retalhuleu", municipio:"San Felipe"},
+  {id:"pass-san-martin", nombre:"Pass San Martín", direccion:"Km. 180", horario:"8:00 AM - 10:00 PM", lat:14.5984922, lng:-91.612915, departamento:"Retalhuleu", municipio:"San Martín Zapotitlán"},
+  {id:"gasolinera-shaday", nombre:"Gasolinera Shaday", direccion:"San Martín Zapotitlán", horario:null, lat:14.6102581, lng:-91.6053322, departamento:"Retalhuleu", municipio:"San Martín Zapotitlán"},
+  {id:"shell-santa-cruz-mulua", nombre:"Shell Santa Cruz Muluá", direccion:"Km 180, Ruta CITO-180", horario:"6:00 AM - 10:00 PM", lat:14.586115, lng:-91.6223835, departamento:"Retalhuleu", municipio:"Santa Cruz Muluá"},
+  {id:"puma-santa-cruz-mulua", nombre:"Puma Santa Cruz Muluá", direccion:"CITO-180", horario:"24 horas", lat:14.5807917, lng:-91.6276841, departamento:"Retalhuleu", municipio:"Santa Cruz Muluá"},
+  {id:"don-rolando-champerico", nombre:"Estación Don Rolando Champerico", direccion:"Champerico", horario:null, lat:14.2922794, lng:-91.9120099, departamento:"Retalhuleu", municipio:"Champerico"},
+  {id:"santander-2-champerico", nombre:"Gasolinera Santander #2", direccion:"RN-9S, Champerico", horario:"6:00 AM - 8:00 PM", lat:14.2970712, lng:-91.9093362, departamento:"Retalhuleu", municipio:"Champerico"},
+  {id:"gas-carolinas-2-asintal", nombre:"Gas Carolinas 2", direccion:"Calle Principal, El Asintal", horario:null, lat:14.5989656, lng:-91.7265822, departamento:"Retalhuleu", municipio:"El Asintal"},
+  {id:"texaco-miami-nuevo-san-carlos", nombre:"Texaco Miami Nuevo San Carlos", direccion:"Nuevo San Carlos", horario:null, lat:14.5901841, lng:-91.6926915, departamento:"Retalhuleu", municipio:"Nuevo San Carlos"},
+  {id:"la-ceiba-nuevo-san-carlos", nombre:"Gasolinera La Ceiba", direccion:"Nuevo San Carlos", horario:null, lat:14.590163, lng:-91.6926838, departamento:"Retalhuleu", municipio:"Nuevo San Carlos"}
+];
+
+const MUNICIPIOS_POR_DEPTO = {
+  "Alta Verapaz": ["Chahal","Chisec","Cobán","Fray Bartolomé de las Casas","Santa Catalina La Tinta","Lanquín","Panzós","Raxruhá","San Cristóbal Verapaz","San Juan Chamelco","San Pedro Carchá","Santa Cruz Verapaz","Santa María Cahabón","Senahú","Tamahú","Tactic","Tucurú"],
+  "Baja Verapaz": ["Cubulco","Granados","Purulhá","Rabinal","Salamá","San Jerónimo","San Miguel Chicaj","Santa Cruz el Chol"],
+  "Chimaltenango": ["Acatenango","Chimaltenango","El Tejar","Parramos","Patzicía","Patzún","Pochuta","San Andrés Itzapa","San José Poaquíl","San Juan Comalapa","San Martín Jilotepeque","Santa Apolonia","Santa Cruz Balanyá","Tecpán","Yepocapa","Zaragoza"],
+  "Chiquimula": ["Camotán","Chiquimula","Concepción Las Minas","Esquipulas","Ipala","Jocotán","Olopa","Quetzaltepeque","San Jacinto","San José la Arada","San Juan Ermita"],
+  "El Progreso": ["El Jícaro","Guastatoya","Morazán","San Agustín Acasaguastlán","San Antonio La Paz","San Cristóbal Acasaguastlán","Sanarate","Sansare"],
+  "Escuintla": ["Escuintla","Guanagazapa","Iztapa","La Democracia","La Gomera","Masagua","Nueva Concepción","Palín","San José","San Vicente Pacaya","Santa Lucía Cotzumalguapa","Sipacate","Siquinalá","Tiquisate"],
+  "Guatemala": ["Amatitlán","Chinautla","Chuarrancho","Ciudad de Guatemala","Fraijanes","Mixco","Palencia","San José del Golfo","San José Pinula","San Juan Sacatepéquez","San Miguel Petapa","San Pedro Ayampuc","San Pedro Sacatepéquez","San Raymundo","Santa Catarina Pinula","Villa Canales","Villa Nueva"],
+  "Huehuetenango": ["Aguacatán","Chiantla","Colotenango","Concepción Huista","Cuilco","Huehuetenango","Jacaltenango","La Democracia","La Libertad","Malacatancito","Nentón","Petatán","San Antonio Huista","San Gaspar Ixchil","San Ildefonso Ixtahuacán","San Juan Atitán","San Juan Ixcoy","San Mateo Ixtatán","San Miguel Acatán","San Pedro Nécta","San Pedro Soloma","San Rafael La Independencia","San Rafael Pétzal","San Sebastián Coatán","San Sebastián Huehuetenango","Santa Ana Huista","Santa Bárbara","Santa Cruz Barillas","Santa Eulalia","Santiago Chimaltenango","Tectitán","Todos Santos Cuchumatán","Unión Cantinil"],
+  "Izabal": ["El Estor","Livingston","Los Amates","Morales","Puerto Barrios"],
+  "Jalapa": ["Jalapa","Mataquescuintla","Monjas","San Carlos Alzatate","San Luis Jilotepeque","San Manuel Chaparrón","San Pedro Pinula"],
+  "Jutiapa": ["Agua Blanca","Asunción Mita","Atescatempa","Comapa","Conguaco","El Adelanto","El Progreso","Jalpatagua","Jerez","Jutiapa","Moyuta","Pasaco","Quesada","San José Acatempa","Santa Catarina Mita","Yupiltepeque","Zapotitlán"],
+  "Petén": ["Dolores","El Chal","Flores","La Libertad","Las Cruces","Melchor de Mencos","Poptún","San Andrés","San Benito","San Francisco","San José","San Luis","Santa Ana","Sayaxché"],
+  "Quetzaltenango": ["Almolonga","Cabricán","Cajolá","Cantel","Coatepeque","Colomba Costa Cuca","Concepción Chiquirichapa","El Palmar","Flores Costa Cuca","Génova","Huitán","La Esperanza","Olintepeque","Palestina de Los Altos","Quetzaltenango","Salcajá","San Carlos Sija","San Francisco La Unión","San Juan Ostuncalco","San Martín Sacatepéquez","San Mateo","San Miguel Sigüilá","Sibilia","Zunil"],
+  "Quiché": ["Canillá","Chajul","Chicamán","Chiché","Santo Tomás Chichicastenango","Chinique","Cunén","Ixcán","Joyabaj","Nebaj","Pachalum","Patzité","Sacapulas","San Andrés Sajcabajá","San Antonio Ilotenango","San Bartolomé Jocotenango","San Juan Cotzal","San Pedro Jocopilas","Santa Cruz del Quiché","Uspantán","Zacualpa"],
+  "Retalhuleu": ["Champerico","El Asintal","Nuevo San Carlos","Retalhuleu","San Andrés Villa Seca","San Felipe","San Martín Zapotitlán","San Sebastián","Santa Cruz Muluá"],
+  "Sacatepéquez": ["Alotenango","Ciudad Vieja","Jocotenango","La Antigua Guatemala","Magdalena Milpas Altas","Pastores","San Antonio Aguas Calientes","San Bartolomé Milpas Altas","San Lucas Sacatepéquez","San Miguel Dueñas","Santa Catarina Barahona","Santa Lucía Milpas Altas","Santa María de Jesús","Santiago Sacatepéquez","Santo Domingo Xenacoj","Sumpango"],
+  "San Marcos": ["Ayutla","Catarina","Comitancillo","Concepción Tutuapa","El Quetzal","El Tumbador","Esquipulas Palo Gordo","Ixchiguán","La Blanca","La Reforma","Malacatán","Nuevo Progreso","Ocós","Pajapita","Río Blanco","San Antonio Sacatepéquez","San Cristóbal Cucho","San José El Rodeo","San José Ojetenam","San Lorenzo","San Marcos","San Miguel Ixtahuacán","San Pablo","San Pedro Sacatepéquez","San Rafael Pie de la Cuesta","Sibinal","Sipacapa","Tacaná","Tajumulco","Tejutla"],
+  "Santa Rosa": ["Barberena","Casillas","Chiquimulilla","Cuilapa","Guazacapán","Nueva Santa Rosa","Oratorio","Pueblo Nuevo Viñas","San Juan Tecuaco","San Rafael las Flores","Santa Cruz Naranjo","Santa María Ixhuatán","Santa Rosa de Lima","Taxisco"],
+  "Sololá": ["Concepción","Nahualá","Panajachel","San Andrés Semetabaj","San Antonio Palopó","San José Chacayá","San Juan La Laguna","San Lucas Tolimán","San Marcos La Laguna","San Pablo La Laguna","San Pedro La Laguna","Santa Catarina Ixtahuacán","Santa Catarina Palopó","Santa Clara La Laguna","Santa Cruz La Laguna","Santa Lucía Utatlán","Santa María Visitación","Santiago Atitlán","Sololá"],
+  "Suchitepéquez": ["Chicacao","Cuyotenango","Mazatenango","Patulul","Pueblo Nuevo","Río Bravo","Samayac","San Antonio Suchitepéquez","San Bernardino","San Francisco Zapotitlán","San Gabriel","San José El Idolo","San José La Máquina","San Juan Bautista","San Lorenzo","San Miguel Panán","San Pablo Jocopilas","Santa Bárbara","Santo Domingo Suchitepéquez","Santo Tomás La Unión","Zunilito"],
+  "Totonicapán": ["Momostenango","San Andrés Xecul","San Bartolo","San Cristóbal Totonicapán","San Francisco El Alto","Santa Lucía La Reforma","Santa María Chiquimula","Totonicapán"],
+  "Zacapa": ["Cabañas","Estanzuela","Gualán","Huité","La Unión","Río Hondo","San Diego","San Jorge","Teculután","Usumatlán","Zacapa"]
+};
+const DEPARTAMENTOS = Object.keys(MUNICIPIOS_POR_DEPTO).sort((a,b)=>a.localeCompare(b,'es'));
+
+const FUEL_LABELS = {regular:"Regular", super:"Súper", diesel:"Diésel"};
+let stations = {};
+let activeStation = null;
+let miUid = null;
+let miAlias = null;
+let miPerfil = {};
+let esAdmin = false;
+let sortMode = "precio";
+let fuelFilter = "regular";
+let userLoc = null;
+let deptoActivo = "Retalhuleu";
+let municipioActivo = "todos";
+let vistaActual = "lista"; // "lista" | "favoritos"
+let busquedaNombre = "";
+let busquedaMin = null;
+let busquedaMax = null;
+
+function fmtQ(v){ return "Q" + Number(v).toFixed(2); }
+
+function haversineKm(lat1, lng1, lat2, lng2){
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLng = (lng2-lng1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function requestLocation(){
+  if(!navigator.geolocation){
+    toast("Este navegador/vista no permite obtener tu ubicación.");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{ userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude }; renderList(); },
+    (err)=>{ toast("No se pudo obtener tu ubicación (" + (err.message || "permiso denegado") + ")."); },
+    { timeout: 8000 }
+  );
+}
+
+function ageLabel(ts){
+  if(!ts) return "Sin datos";
+  const mins = Math.round((Date.now() - ts) / 60000);
+  if(mins < 1) return "Justo ahora";
+  if(mins < 60) return "hace " + mins + " min";
+  const hrs = Math.round(mins/60);
+  if(hrs < 24) return "hace " + hrs + " h";
+  return "hace " + Math.round(hrs/24) + " d";
+}
+
+function esDesactualizado(ts){
+  if(!ts) return false;
+  return (Date.now() - ts) > (48 * 60 * 60 * 1000);
+}
+
+// Compara el precio actual con el reporte anterior del mismo combustible (ignorando confirmaciones)
+// para saber si subió, bajó, o sigue igual.
+function tendenciaPrecio(st, tipo){
+  const hist = (st.historial || []).filter(h => h.tipo === tipo && !h.confirmacion);
+  if(hist.length < 2) return null;
+  const ordenado = [...hist].sort((a,b)=> a.ts - b.ts);
+  const actual = ordenado[ordenado.length - 1].valor;
+  const anterior = ordenado[ordenado.length - 2].valor;
+  if(actual === anterior) return null;
+  return { anterior, subio: actual > anterior };
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// Inicia sesión anónima (una cuenta real de Firebase, sin correo/contraseña)
+// y pide un alias la primera vez, para que cada reporte quede ligado a "alguien".
+function conTiempoLimite(promesa, ms, mensajeTimeout){
+  return Promise.race([
+    promesa,
+    new Promise((_, reject)=> setTimeout(()=> reject(new Error(mensajeTimeout)), ms))
+  ]);
+}
+
+function iniciarAutenticacion(){
+  const statusEl = document.getElementById('authStatus');
+
+  onAuthStateChanged(auth, async (user)=>{
+    if(!user){
+      statusEl.textContent = "Conectando con el servidor…";
+      statusEl.style.color = "var(--ink-soft)";
+      try{
+        await conTiempoLimite(signInAnonymously(auth), 10000, "tardó más de 10s, probablemente no hay internet");
+      }catch(e){
+        statusEl.innerHTML = "No se pudo conectar (" + (e.code || e.message || "error desconocido") + "). <span id='retryAuth' style='text-decoration:underline; cursor:pointer;'>Reintentar</span>";
+        statusEl.style.color = "var(--red-dark)";
+        const retryBtn = document.getElementById('retryAuth');
+        if(retryBtn) retryBtn.addEventListener('click', ()=> iniciarAutenticacion());
+      }
+      return;
+    }
+    miUid = user.uid;
+    statusEl.textContent = "Conectado.";
+    statusEl.style.color = "var(--green-dark)";
+    try{
+      const snap = await conTiempoLimite(getDoc(doc(db, "usuarios", miUid)), 10000, "tardó demasiado leyendo tu perfil");
+      if(snap.exists()){
+        miPerfil = snap.data();
+        miAlias = miPerfil.alias;
+        document.getElementById('authOverlay').classList.remove('open');
+        actualizarChipPerfil();
+        verificarSiSoyAdmin();
+      }else{
+        document.getElementById('authOverlay').classList.add('open');
+      }
+    }catch(e){
+      statusEl.textContent = "Conectado, pero no se pudo leer tu perfil (" + (e.code || e.message || "error") + ").";
+      statusEl.style.color = "var(--red-dark)";
+      document.getElementById('authOverlay').classList.add('open');
+    }
+  });
+}
+
+function actualizarChipPerfil(){
+  document.getElementById('profileAliasMini').textContent = miAlias || '…';
+  const avatarEl = document.getElementById('profileAvatarMini');
+  if(miPerfil.foto){
+    avatarEl.innerHTML = `<img src="${miPerfil.foto}" style="width:100%; height:100%; object-fit:cover;">`;
+  }else{
+    avatarEl.textContent = (miAlias || '?').trim().charAt(0).toUpperCase();
+  }
+}
+
+// Consulta el documento config/admins en Firestore (protegido por las reglas del servidor)
+// para saber si este usuario es parte del equipo. El botón solo se muestra si es así.
+let debugAdminInfo = "aún no verificado";
+
+async function verificarSiSoyAdmin(){
+  try{
+    const snap = await getDoc(doc(db, "config", "admins"));
+    if(!snap.exists()){
+      esAdmin = false;
+      debugAdminInfo = "config/admins no existe (getDoc dice exists()=false)";
+    }else{
+      const uids = snap.data().uids || [];
+      esAdmin = uids.includes(miUid);
+      debugAdminInfo = "uids leídos: [" + uids.join(", ") + "] — coincide: " + esAdmin;
+    }
+  }catch(e){
+    esAdmin = false;
+    debugAdminInfo = "ERROR: " + (e.code || e.message || "desconocido");
+  }
+  document.getElementById('masterBtn').style.display = esAdmin ? 'inline-block' : 'none';
+}
+
+document.getElementById('submitAliasBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('aliasInput');
+  const errorEl = document.getElementById('aliasError');
+  const alias = input.value.trim();
+  if(alias.length < 2){
+    errorEl.textContent = "Escribe un alias de al menos 2 letras.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  if(!miUid){
+    errorEl.textContent = "Todavía conectando con el servidor, espera unos segundos e intenta de nuevo.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  errorEl.style.display = 'none';
+  try{
+    await setDoc(doc(db, "usuarios", miUid), { alias, creadoEn: Date.now() });
+    miAlias = alias;
+    miPerfil = { alias, creadoEn: Date.now() };
+    document.getElementById('authOverlay').classList.remove('open');
+    actualizarChipPerfil();
+    verificarSiSoyAdmin();
+  }catch(e){
+    errorEl.textContent = "No se pudo guardar: " + (e.code || e.message || "intenta de nuevo");
+    errorEl.style.display = 'block';
+  }
+});
+
+function seedDataFor(id){
+  const s = SEED.find(x=>x.id===id);
+  return s ? {...s, precios:{}, historial:[], visitas:0} : null;
+}
+
+// Siembra Firestore con las gasolineras conocidas SOLO la primera vez (colección vacía).
+async function sembrarSiHaceFalta(){
+  const snap = await getDocs(estacionesRef);
+  if(!snap.empty) return;
+  for(const s of SEED){
+    await setDoc(doc(db, "estaciones", s.id), {...s, precios:{}, historial:[], visitas:0, estado:"aprobada"});
+  }
+}
+
+// Escucha Firestore en tiempo real: cualquier reporte de cualquier usuario
+// llega aquí solo, sin necesidad de refrescar ni comparar nada a mano.
+function iniciarEscuchaTiempoReal(){
+  onSnapshot(estacionesRef, (snapshot)=>{
+    const nuevo = {};
+    snapshot.forEach(d=> nuevo[d.id] = { id: d.id, ...d.data() });
+    stations = nuevo;
+    document.getElementById('statusText').textContent = Object.keys(stations).length + " gasolineras · en vivo";
+    renderList();
+    renderRanking();
+  }, (error)=>{
+    document.getElementById('statusText').textContent = "Sin conexión con la base de datos.";
+    toast("No se pudo conectar a Firebase. Revisa tu configuración.");
+  });
+}
+
+async function syncFromServer(){
+  await sembrarSiHaceFalta();
+  // El resto llega solo vía iniciarEscuchaTiempoReal(); esto solo fuerza
+  // que exista al menos la siembra inicial la primera vez que alguien abre la app.
+}
+
+function renderDeptoList(){
+  document.getElementById('deptoCurrent').textContent = deptoActivo;
+  const el = document.getElementById('deptoList');
+  el.innerHTML = DEPARTAMENTOS.map(d=>
+    `<div class="region-item ${d===deptoActivo?'active':''}" data-depto="${d}">${d}</div>`
+  ).join('');
+  el.querySelectorAll('.region-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      deptoActivo = item.dataset.depto;
+      municipioActivo = "todos";
+      renderDeptoList();
+      renderMunicipioList();
+      renderList();
+      renderRanking();
+      document.getElementById('deptoBox').classList.remove('expanded');
+    });
+  });
+}
+
+function renderMunicipioList(){
+  document.getElementById('municipioCurrent').textContent = municipioActivo === "todos" ? "Todos" : municipioActivo;
+  const el = document.getElementById('municipioList');
+  const opciones = MUNICIPIOS_POR_DEPTO[deptoActivo] || [];
+  const items = ['<div class="region-item ' + (municipioActivo==="todos"?"active":"") + '" data-muni="todos">Todos</div>']
+    .concat(opciones.map(m=>`<div class="region-item ${m===municipioActivo?'active':''}" data-muni="${m}">${m}</div>`));
+  el.innerHTML = items.join('');
+  el.querySelectorAll('.region-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      municipioActivo = item.dataset.muni;
+      renderMunicipioList();
+      renderList();
+      renderRanking();
+      document.getElementById('municipioBox').classList.remove('expanded');
+    });
+  });
+}
+
+document.getElementById('deptoToggle').addEventListener('click', ()=>{
+  document.getElementById('deptoBox').classList.toggle('expanded');
+  document.getElementById('municipioBox').classList.remove('expanded');
+});
+
+document.getElementById('municipioToggle').addEventListener('click', ()=>{
+  document.getElementById('municipioBox').classList.toggle('expanded');
+  document.getElementById('deptoBox').classList.remove('expanded');
+});
+
+function cheapestPrice(st){
+  const vals = ["regular","super","diesel"].map(k => st.precios && st.precios[k] ? st.precios[k].valor : null).filter(v=>v!=null);
+  return vals.length ? Math.min(...vals) : null;
+}
+
+function calificacionPromedio(st){
+  const resenas = st.resenas || [];
+  if(!resenas.length) return null;
+  const suma = resenas.reduce((acc,r)=> acc + r.estrellas, 0);
+  return { promedio: suma / resenas.length, total: resenas.length };
+}
+
+function estrellasHtml(promedio){
+  const llenas = Math.round(promedio);
+  return '★'.repeat(llenas) + '☆'.repeat(5 - llenas);
+}
+
+function renderList(){
+  const list = document.getElementById('list');
+
+  if(vistaActual === "favoritos"){
+    const favs = miPerfil.favoritos || [];
+    const arr = Object.values(stations).filter(st => favs.includes(st.id));
+    document.getElementById('filters').style.display = 'none';
+    document.getElementById('ranking').style.display = 'none';
+    if(!arr.length){
+      list.innerHTML = `<button class="add-station-btn" id="volverListaBtn" style="margin-bottom:14px;">← Volver a la lista</button>
+        <div class="empty">Todavía no tienes gasolineras favoritas. Ábrelas desde su detalle y toca la estrella.</div>`;
+    }else{
+      list.innerHTML = `<button class="add-station-btn" id="volverListaBtn" style="margin-bottom:14px;">← Volver a la lista</button>` +
+        arr.map(st=>{
+          const cal = calificacionPromedio(st);
+          return `<div class="station" data-id="${st.id}">
+            <div>
+              <p class="name">${st.nombre}</p>
+              <p class="meta">${st.direccion || ""}</p>
+              ${cal ? `<p class="dist-tag">${estrellasHtml(cal.promedio)} (${cal.total})</p>` : `<p class="dist-tag">Sin calificaciones todavía</p>`}
+            </div>
+          </div>`;
+        }).join('');
+    }
+    list.querySelectorAll('.station').forEach(el=> el.addEventListener('click', ()=> openDetail(el.dataset.id)));
+    const volverBtn = document.getElementById('volverListaBtn');
+    if(volverBtn) volverBtn.addEventListener('click', ()=>{ vistaActual = 'lista'; renderList(); renderRanking(); });
+    return;
+  }
+
+  document.getElementById('filters').style.display = '';
+  document.getElementById('ranking').style.display = '';
+
+  let arr = Object.values(stations).filter(st => st.departamento === deptoActivo && st.estado !== "pendiente");
+  if(municipioActivo !== "todos"){
+    arr = arr.filter(st => st.municipio === municipioActivo);
+  }
+  if(busquedaNombre.trim()){
+    const q = busquedaNombre.trim().toLowerCase();
+    arr = arr.filter(st => st.nombre.toLowerCase().includes(q));
+  }
+  if(busquedaMin != null || busquedaMax != null){
+    arr = arr.filter(st=>{
+      const p = st.precios && st.precios[fuelFilter];
+      if(!p) return false;
+      if(busquedaMin != null && p.valor < busquedaMin) return false;
+      if(busquedaMax != null && p.valor > busquedaMax) return false;
+      return true;
+    });
+  }
+
+  arr.sort((a,b)=>{
+    if(sortMode === "distancia" && userLoc){
+      const da = haversineKm(userLoc.lat, userLoc.lng, a.lat, a.lng);
+      const db = haversineKm(userLoc.lat, userLoc.lng, b.lat, b.lng);
+      return da - db;
+    }
+    const pa = a.precios && a.precios[fuelFilter] ? a.precios[fuelFilter].valor : null;
+    const pb = b.precios && b.precios[fuelFilter] ? b.precios[fuelFilter].valor : null;
+    if(pa==null && pb==null) return 0;
+    if(pa==null) return 1;
+    if(pb==null) return -1;
+    return pa - pb;
+  });
+
+  if(!arr.length){
+    const muniTxt = municipioActivo !== "todos" ? municipioActivo : deptoActivo;
+    list.innerHTML = `<div class="empty">
+      Todavía no tenemos gasolineras registradas en ${muniTxt}.
+      <button class="add-station-btn" id="addStationEmptyBtn">Solicitar gasolinera aquí</button>
+    </div>`;
+    document.getElementById('addStationEmptyBtn').addEventListener('click', openAddStation);
+    return;
+  }
+
+  const sinDatos = arr.every(st => !(st.precios && st.precios[fuelFilter]));
+  const aviso = sinDatos
+    ? `<div class="empty">Todavía nadie ha reportado precios de ${FUEL_LABELS[fuelFilter]}. Sé el primero.</div>`
+    : '';
+
+  list.innerHTML = aviso + arr.map(st=>{
+    const p = st.precios && st.precios[fuelFilter];
+    const fuelColorSolid = fuelFilter === 'diesel' ? 'var(--green)' : 'var(--red)';
+    const label = p ? fmtQ(p.valor) : "Sin reportes";
+    const stale = p && esDesactualizado(p.ts);
+    const style = p ? `background:${fuelColorSolid};` : `background:var(--line); color:var(--ink-soft); font-size:12px; font-weight:500;`;
+    const tend = p ? tendenciaPrecio(st, fuelFilter) : null;
+    const distTxt = userLoc && st.lat ? haversineKm(userLoc.lat, userLoc.lng, st.lat, st.lng).toFixed(1) + " km" : "";
+    return `<div class="station" data-id="${st.id}">
+      <div>
+        <p class="name">${st.nombre}</p>
+        <p class="meta">${st.direccion || ""}</p>
+        ${distTxt ? `<p class="dist-tag">${distTxt}</p>` : ''}
+        ${tend ? `<p class="trend ${tend.subio?'up':'down'}" style="color:${tend.subio?'var(--red-dark)':'var(--green-dark)'};">${tend.subio?'▲':'▼'} <span class="old">${fmtQ(tend.anterior)}</span></p>` : ''}
+      </div>
+      <div class="price-tag ${stale?'stale':''}" style="${stale?'':style}">${label}${p ? '<small>'+ageLabel(p.ts)+(stale?' · desactualizado':'')+'</small>' : ''}</div>
+    </div>`;
+  }).join('') + `<div class="add-station-row"><button class="add-station-btn" id="addStationBtn">+ Solicitar gasolinera</button></div>`;
+
+  list.querySelectorAll('.station').forEach(el=>{
+    el.addEventListener('click', ()=> openDetail(el.dataset.id));
+  });
+  document.getElementById('addStationBtn').addEventListener('click', openAddStation);
+}
+
+function renderRanking(){
+  const el = document.getElementById('ranking');
+  let arr = Object.values(stations).filter(st => st.departamento === deptoActivo);
+  if(municipioActivo !== "todos"){
+    arr = arr.filter(st => st.municipio === municipioActivo);
+  }
+  const visitadas = arr.filter(st => (st.visitas || 0) > 0);
+  if(visitadas.length < 2){
+    el.innerHTML = '';
+    return;
+  }
+  const sorted = [...arr].sort((a,b)=> (b.visitas||0) - (a.visitas||0));
+  const masVisitadas = sorted.slice(0, 3);
+  const menosVisitadas = [...sorted].reverse().slice(0, 3);
+
+  const rows = (list) => list.map(st=>`
+    <div class="rank-row"><span class="rn">${st.nombre}</span><span class="rv">${st.visitas || 0}</span></div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="rank-card">
+      <h4>Más visitadas</h4>
+      ${rows(masVisitadas)}
+    </div>
+    <div class="rank-card">
+      <h4>Menos visitadas</h4>
+      ${rows(menosVisitadas)}
+    </div>
+  `;
+}
+
+function openAddStation(){
+  activeStation = null;
+  const sheet = document.getElementById('sheet');
+  const muniPrefill = municipioActivo !== "todos" ? municipioActivo : "";
+  sheet.innerHTML = `
+    <div class="sheet-head">
+      <div>
+        <h2>Solicitar gasolinera</h2>
+        <p>${deptoActivo}${muniPrefill ? " · " + muniPrefill : ""}</p>
+      </div>
+      <button class="close-btn" id="closeSheetBtn" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="form-block">
+      <label for="newNombre">Nombre de la gasolinera</label>
+      <input type="text" id="newNombre" placeholder="Ej. Shell centro">
+      ${muniPrefill ? '' : `
+        <label for="newMunicipio">Municipio</label>
+        <input type="text" id="newMunicipio" placeholder="Ej. ${(MUNICIPIOS_POR_DEPTO[deptoActivo]||[])[0] || 'Escribe el municipio'}">
+      `}
+      <label for="newDireccion">Dirección</label>
+      <input type="text" id="newDireccion" placeholder="Ej. 3a calle y 5a avenida, zona 1">
+      <p class="error" id="addError">Completa el nombre y la dirección.</p>
+      <p style="font-size:11px; color:var(--ink-soft); margin-top:4px;">El equipo de Gasalva revisa cada solicitud antes de publicarla. No aparece de inmediato en la lista.</p>
+      <button class="submit-btn" id="submitAddStation">Enviar solicitud</button>
+    </div>
+  `;
+  document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
+  document.getElementById('submitAddStation').addEventListener('click', ()=> submitAddStation(muniPrefill));
+  document.getElementById('overlay').classList.add('open');
+}
+
+async function submitAddStation(muniPrefill){
+  const nombre = document.getElementById('newNombre').value.trim();
+  const direccion = document.getElementById('newDireccion').value.trim();
+  const municipioInput = muniPrefill || (document.getElementById('newMunicipio') ? document.getElementById('newMunicipio').value.trim() : "");
+  const errorEl = document.getElementById('addError');
+
+  if(!nombre || !direccion || !municipioInput){
+    errorEl.textContent = "Completa el nombre, el municipio y la dirección.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  errorEl.style.display = 'none';
+
+  const id = "custom-" + nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + "-" + Date.now().toString(36);
+  const nuevaEstacion = {
+    id, nombre, direccion, horario:null, lat:null, lng:null,
+    departamento: deptoActivo, municipio: municipioInput,
+    precios:{}, historial:[], visitas:0,
+    estado: "pendiente",
+    solicitadoPor: miAlias || "anónimo",
+    solicitadoEn: Date.now()
+  };
+
+  try{
+    await setDoc(doc(db, "estaciones", id), nuevaEstacion);
+    toast("Enviado para revisión. El equipo la publicará tras validarla.");
+  }catch(e){
+    toast("No se pudo enviar. Revisa tu conexión e intenta de nuevo.");
+  }
+
+  closeSheet();
+  renderList();
+  renderRanking();
+}
+
+const GENEROS = ["Prefiero no decir", "Femenino", "Masculino", "Otro"];
+
+function comprimirImagen(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const size = 120;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function abrirPerfil(){
+  activeStation = null;
+  const sheet = document.getElementById('sheet');
+  const depto = miPerfil.departamento || "";
+  const muni = miPerfil.municipio || "";
+
+  sheet.innerHTML = `
+    <div class="sheet-head">
+      <div><h2>Tu perfil</h2><p>Visible junto a tus reportes</p></div>
+      <button class="close-btn" id="closeSheetBtn" aria-label="Cerrar">&times;</button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:16px;">
+      <div id="profileAvatarBig" style="width:72px; height:72px; border-radius:50%; background:var(--amber); color:#3A2308; font-size:26px; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:8px;">
+        ${miPerfil.foto ? `<img src="${miPerfil.foto}" style="width:100%; height:100%; object-fit:cover;">` : (miAlias||'?').trim().charAt(0).toUpperCase()}
+      </div>
+      <label for="fotoInput" style="font-size:12px; color:var(--text-accent, var(--amber-dark)); text-decoration:underline; cursor:pointer;">Cambiar foto</label>
+      <input type="file" id="fotoInput" accept="image/*" style="display:none;">
+    </div>
+
+    <div class="form-block">
+      <label for="perfilAlias">Alias</label>
+      <input type="text" id="perfilAlias" maxlength="24" value="${miAlias || ''}">
+
+      <label for="perfilGenero">Género</label>
+      <select id="perfilGenero" style="width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line); font-size:14px; background:var(--card); color:var(--ink);">
+        ${GENEROS.map(g=>`<option value="${g}" ${g===miPerfil.genero?'selected':''}>${g}</option>`).join('')}
+      </select>
+
+      <label for="perfilDepto">Tu departamento</label>
+      <select id="perfilDepto" style="width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line); font-size:14px; background:var(--card); color:var(--ink);">
+        <option value="">Sin especificar</option>
+        ${DEPARTAMENTOS.map(d=>`<option value="${d}" ${d===depto?'selected':''}>${d}</option>`).join('')}
+      </select>
+
+      <label for="perfilMuni">Tu municipio</label>
+      <select id="perfilMuni" style="width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line); font-size:14px; background:var(--card); color:var(--ink);">
+        <option value="">Sin especificar</option>
+        ${(MUNICIPIOS_POR_DEPTO[depto]||[]).map(m=>`<option value="${m}" ${m===muni?'selected':''}>${m}</option>`).join('')}
+      </select>
+
+      <p class="error" id="perfilError">No se pudo guardar. Intenta de nuevo.</p>
+      <button class="submit-btn" id="guardarPerfilBtn">Guardar cambios</button>
+
+      <button class="add-station-btn" id="cerrarSesionBtn" style="width:100%; margin-top:22px; background:var(--card); color:var(--ink); border:1px solid var(--line);">Cerrar sesión</button>
+      <button class="add-station-btn" id="eliminarCuentaBtn" style="width:100%; margin-top:10px; background:#FCEBEB; color:var(--red-dark);">Eliminar cuenta</button>
+
+      <p style="font-size:10px; color:var(--ink-soft); text-align:center; margin-top:16px; word-break:break-all;">
+        Tu UID (para el equipo): <span style="font-family:monospace; user-select:all;">${miUid}</span>
+      </p>
+      <p style="font-size:10px; color:var(--ink-soft); text-align:center; margin-top:4px;">
+        Estado de administrador: <strong>${esAdmin ? 'Sí' : 'No'}</strong>
+      </p>
+      <p style="font-size:10px; color:var(--ink-soft); text-align:center; margin-top:4px; word-break:break-all;">
+        Detalle: ${debugAdminInfo}
+      </p>
+      <p style="font-size:10px; color:var(--line); text-align:center; margin-top:10px;">build-2026-09-12-v8</p>
+    </div>
+  `;
+
+  document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
+  document.getElementById('overlay').classList.add('open');
+
+  let fotoNueva = null;
+  document.getElementById('fotoInput').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      fotoNueva = await comprimirImagen(file);
+      document.getElementById('profileAvatarBig').innerHTML = `<img src="${fotoNueva}" style="width:100%; height:100%; object-fit:cover;">`;
+    }catch(err){
+      toast("No se pudo procesar la imagen.");
+    }
+  });
+
+  document.getElementById('perfilDepto').addEventListener('change', (e)=>{
+    const opciones = MUNICIPIOS_POR_DEPTO[e.target.value] || [];
+    const muniSel = document.getElementById('perfilMuni');
+    muniSel.innerHTML = '<option value="">Sin especificar</option>' + opciones.map(m=>`<option value="${m}">${m}</option>`).join('');
+  });
+
+  document.getElementById('guardarPerfilBtn').addEventListener('click', async ()=>{
+    const nuevoAlias = document.getElementById('perfilAlias').value.trim();
+    const errorEl = document.getElementById('perfilError');
+    if(nuevoAlias.length < 2){
+      errorEl.textContent = "El alias debe tener al menos 2 letras.";
+      errorEl.style.display = 'block';
+      return;
+    }
+    const datos = {
+      alias: nuevoAlias,
+      genero: document.getElementById('perfilGenero').value,
+      departamento: document.getElementById('perfilDepto').value,
+      municipio: document.getElementById('perfilMuni').value
+    };
+    if(fotoNueva) datos.foto = fotoNueva;
+    try{
+      await setDoc(doc(db, "usuarios", miUid), datos, { merge: true });
+      miAlias = nuevoAlias;
+      miPerfil = { ...miPerfil, ...datos };
+      actualizarChipPerfil();
+      toast("Perfil actualizado.");
+      closeSheet();
+    }catch(e){
+      errorEl.textContent = "No se pudo guardar (" + (e.code || e.message || "error") + ").";
+      errorEl.style.display = 'block';
+    }
+  });
+
+  document.getElementById('cerrarSesionBtn').addEventListener('click', async ()=>{
+    if(!confirm("¿Cerrar sesión? Como tu cuenta es anónima, no podrás volver a entrar con este mismo alias después — la próxima vez crearás uno nuevo.")) return;
+    await signOut(auth);
+    location.reload();
+  });
+
+  document.getElementById('eliminarCuentaBtn').addEventListener('click', async ()=>{
+    if(!confirm("¿Eliminar tu cuenta y tu perfil? Esta acción no se puede deshacer. Tus reportes ya enviados permanecerán, pero sin poder editarlos.")) return;
+    try{
+      await deleteDoc(doc(db, "usuarios", miUid));
+      await deleteUser(auth.currentUser);
+      location.reload();
+    }catch(e){
+      toast("No se pudo eliminar la cuenta (" + (e.code || e.message || "error") + "). Intenta de nuevo.");
+    }
+  });
+}
+
+document.getElementById('profileChip').addEventListener('click', abrirPerfil);
+
+function openMasterPanel(){
+  if(!esAdmin){
+    toast("Esta sección es solo para el equipo de Gasalva.");
+    return;
+  }
+  renderMasterPanel();
+}
+
+function renderMasterPanel(){
+  activeStation = null;
+  const sheet = document.getElementById('sheet');
+  const todas = Object.values(stations).filter(st => st.id && st.id.startsWith('custom-'));
+  const pendientes = todas.filter(st => st.estado === 'pendiente');
+  const publicadas = todas.filter(st => st.estado !== 'pendiente');
+
+  const filaPendiente = st => `
+    <div class="admin-row">
+      <div>
+        <p class="admin-row-title">${st.nombre}</p>
+        <p class="admin-row-sub">${st.direccion} · ${st.municipio}, ${st.departamento}</p>
+        <p class="admin-row-sub">Solicitado por: ${st.solicitadoPor || 'anónimo'}</p>
+      </div>
+      <div class="admin-row-actions">
+        <button class="admin-approve" data-id="${st.id}">Aprobar</button>
+        <button class="admin-reject" data-id="${st.id}">Rechazar</button>
+      </div>
+    </div>`;
+
+  const filaPublicada = st => `
+    <div class="admin-row">
+      <div>
+        <p class="admin-row-title">${st.nombre}</p>
+        <p class="admin-row-sub">${st.direccion} · ${st.municipio}, ${st.departamento}</p>
+      </div>
+      <div class="admin-row-actions">
+        <button class="admin-reject" data-id="${st.id}">Eliminar</button>
+      </div>
+    </div>`;
+
+  sheet.innerHTML = `
+    <div class="sheet-head">
+      <div><h2>Panel del equipo</h2><p>Solicitudes y gasolineras de usuarios</p></div>
+      <button class="close-btn" id="closeSheetBtn" aria-label="Cerrar">&times;</button>
+    </div>
+    <h3 class="section">Pendientes de aprobar (${pendientes.length})</h3>
+    <div style="margin-bottom:18px;">${pendientes.length ? pendientes.map(filaPendiente).join('') : '<p style="font-size:12px; color:var(--ink-soft);">No hay solicitudes pendientes.</p>'}</div>
+    <h3 class="section">Ya publicadas por usuarios (${publicadas.length})</h3>
+    <div>${publicadas.length ? publicadas.map(filaPublicada).join('') : '<p style="font-size:12px; color:var(--ink-soft);">Ninguna todavía.</p>'}</div>
+  `;
+
+  document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
+
+  sheet.querySelectorAll('.admin-approve').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      try{
+        await updateDoc(doc(db, "estaciones", btn.dataset.id), { estado: "aprobada" });
+        toast("Gasolinera aprobada y publicada.");
+        renderMasterPanel();
+      }catch(e){ toast("No se pudo aprobar."); }
+    });
+  });
+  sheet.querySelectorAll('.admin-reject').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm("¿Eliminar esta gasolinera? Esta acción no se puede deshacer.")) return;
+      try{
+        await deleteDoc(doc(db, "estaciones", btn.dataset.id));
+        toast("Gasolinera eliminada.");
+        renderMasterPanel();
+      }catch(e){ toast("No se pudo eliminar."); }
+    });
+  });
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function openReportFlow(){
+  activeStation = null;
+  let tempDepto = deptoActivo;
+  let tempMuni = municipioActivo;
+
+  const sheet = document.getElementById('sheet');
+  sheet.innerHTML = `
+    <div class="sheet-head">
+      <div>
+        <h2>Reportar un precio</h2>
+        <p>Primero elige dónde está la gasolinera</p>
+      </div>
+      <button class="close-btn" id="closeSheetBtn" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="region-boxes" style="margin-bottom:16px;">
+      <div class="region-box" id="rfDeptoBox">
+        <div class="region-header" id="rfDeptoToggle">
+          <span class="tri">▶</span>
+          <div class="region-header-text">
+            <h4>Departamento</h4>
+            <p class="region-current" id="rfDeptoCurrent"></p>
+          </div>
+        </div>
+        <div class="region-list" id="rfDeptoList"></div>
+      </div>
+      <div class="region-box" id="rfMuniBox">
+        <div class="region-header" id="rfMuniToggle">
+          <span class="tri">▶</span>
+          <div class="region-header-text">
+            <h4>Municipio</h4>
+            <p class="region-current" id="rfMuniCurrent"></p>
+          </div>
+        </div>
+        <div class="region-list" id="rfMuniList"></div>
+      </div>
+    </div>
+    <button class="submit-btn" id="buscarGasolinerasBtn">Buscar gasolineras</button>
+  `;
+
+  function paintRfDepto(){
+    document.getElementById('rfDeptoCurrent').textContent = tempDepto;
+    const el = document.getElementById('rfDeptoList');
+    el.innerHTML = DEPARTAMENTOS.map(d=>`<div class="region-item ${d===tempDepto?'active':''}" data-d="${d}">${d}</div>`).join('');
+    el.querySelectorAll('.region-item').forEach(item=>{
+      item.addEventListener('click', ()=>{
+        tempDepto = item.dataset.d;
+        tempMuni = "todos";
+        paintRfDepto();
+        paintRfMuni();
+        document.getElementById('rfDeptoBox').classList.remove('expanded');
+      });
+    });
+  }
+
+  function paintRfMuni(){
+    document.getElementById('rfMuniCurrent').textContent = tempMuni === "todos" ? "Todos" : tempMuni;
+    const el = document.getElementById('rfMuniList');
+    const opciones = MUNICIPIOS_POR_DEPTO[tempDepto] || [];
+    el.innerHTML = ['<div class="region-item ' + (tempMuni==="todos"?"active":"") + '" data-m="todos">Todos</div>']
+      .concat(opciones.map(m=>`<div class="region-item ${m===tempMuni?'active':''}" data-m="${m}">${m}</div>`)).join('');
+    el.querySelectorAll('.region-item').forEach(item=>{
+      item.addEventListener('click', ()=>{
+        tempMuni = item.dataset.m;
+        paintRfMuni();
+        document.getElementById('rfMuniBox').classList.remove('expanded');
+      });
+    });
+  }
+
+  document.getElementById('rfDeptoToggle').addEventListener('click', ()=>{
+    document.getElementById('rfDeptoBox').classList.toggle('expanded');
+    document.getElementById('rfMuniBox').classList.remove('expanded');
+  });
+  document.getElementById('rfMuniToggle').addEventListener('click', ()=>{
+    document.getElementById('rfMuniBox').classList.toggle('expanded');
+    document.getElementById('rfDeptoBox').classList.remove('expanded');
+  });
+
+  paintRfDepto();
+  paintRfMuni();
+  document.getElementById('overlay').classList.add('open');
+
+  document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
+  document.getElementById('buscarGasolinerasBtn').addEventListener('click', ()=>{
+    deptoActivo = tempDepto;
+    municipioActivo = tempMuni;
+    renderDeptoList();
+    renderMunicipioList();
+    renderList();
+    renderRanking();
+    closeSheet();
+    document.getElementById('list-scroll') && document.querySelector('.list-scroll').scrollTo({top:0, behavior:'smooth'});
+    toast("Mostrando gasolineras de " + (tempMuni !== "todos" ? tempMuni : tempDepto) + ". Toca una para reportar.");
+  });
+}
+
+function openDetail(id){
+  activeStation = id;
+  const st = stations[id];
+  st.visitas = (st.visitas || 0) + 1;
+  updateDoc(doc(db, "estaciones", id), { visitas: increment(1) }).catch(()=>{});
+  renderSheet();
+  renderRanking();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('open');
+  activeStation = null;
+}
+
+function renderSheet(){
+  const st = stations[activeStation];
+  const fuelSolid = { regular: 'var(--red)', super: 'var(--red)', diesel: 'var(--green)' };
+  const priceCards = ["regular","super","diesel"].map(k=>{
+    const p = st.precios && st.precios[k];
+    const stale = p && esDesactualizado(p.ts);
+    const bg = stale ? 'var(--line)' : fuelSolid[k];
+    const fg = stale ? 'var(--ink-soft)' : '#fff';
+    const tend = p ? tendenciaPrecio(st, k) : null;
+    return `<div class="price-card" style="background:${bg};">
+      <p class="lbl" style="color:${fg};">${FUEL_LABELS[k]}</p>
+      <p class="val" style="color:${fg};">${p ? fmtQ(p.valor) : "—"}</p>
+      ${tend ? `<p class="trend" style="color:${fg};">${tend.subio?'▲':'▼'} <span class="old">${fmtQ(tend.anterior)}</span></p>` : ''}
+      <p class="age" style="color:${stale?'var(--red-dark)':'rgba(255,255,255,0.85)'};">${p ? ageLabel(p.ts) + (stale?' · viejo':'') + (p.reportadoPor ? ' · ' + p.reportadoPor : '') : "sin dato"}</p>
+      ${p ? `<button class="confirm-btn" data-tipo="${k}" style="margin-top:6px; background:rgba(255,255,255,0.25); color:${fg}; border:none; border-radius:6px; padding:4px 6px; font-size:10px;">✓ Sigue igual</button>` : ''}
+    </div>`;
+  }).join('');
+
+  const hist = (st.historial || []).slice(-6).reverse();
+  const histHtml = hist.length
+    ? hist.map(h=>`<div class="hist-row"><span>${FUEL_LABELS[h.tipo]} · ${new Date(h.ts).toLocaleDateString('es-GT',{day:'numeric',month:'short'})}${h.reportadoPor ? ' · ' + h.reportadoPor : ''}${h.confirmacion ? ' (confirmado)' : ''}</span><span>${fmtQ(h.valor)}</span></div>`).join('')
+    : '<div class="hist-row"><span>Todavía no hay reportes</span></div>';
+
+  const esFavorita = (miPerfil.favoritos || []).includes(st.id);
+  const cal = calificacionPromedio(st);
+  const resenas = (st.resenas || []).slice(-5).reverse();
+  const resenasHtml = resenas.length
+    ? resenas.map(r=>`<div class="hist-row" style="flex-direction:column; align-items:flex-start;">
+        <span style="font-weight:600;">${estrellasHtml(r.estrellas)} · ${r.alias || 'anónimo'}</span>
+        ${r.comentario ? `<span style="font-size:12px; color:var(--ink-soft); margin-top:2px;">${r.comentario}</span>` : ''}
+      </div>`).join('')
+    : '<div class="hist-row"><span>Sé el primero en calificar.</span></div>';
+
+  const sheet = document.getElementById('sheet');
+  sheet.innerHTML = `
+    <div class="sheet-head">
+      <div>
+        <h2>${st.nombre}</h2>
+        <p>${st.direccion || ""}${st.horario ? " · " + st.horario : ""}</p>
+        <p style="margin-top:4px;">${cal ? estrellasHtml(cal.promedio) + ` (${cal.total})` : 'Sin calificaciones'}</p>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+        <button class="close-btn" id="closeSheetBtn" aria-label="Cerrar">&times;</button>
+        <span id="favToggle" style="font-size:22px; cursor:pointer; color:${esFavorita?'var(--amber)':'var(--ink-soft)'};">${esFavorita?'★':'☆'}</span>
+      </div>
+    </div>
+    <div class="price-grid">${priceCards}</div>
+    <a class="directions-btn" href="${st.lat && st.lng ? `https://www.google.com/maps/dir/?api=1&destination=${st.lat},${st.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((st.direccion||'') + ', ' + st.municipio + ', ' + st.departamento + ', Guatemala')}`}" target="_blank" rel="noopener noreferrer">📍 Cómo llegar</a>
+    <h3 class="section" style="margin-top:18px;">Historial reciente</h3>
+    <div style="margin-bottom:20px;">${histHtml}</div>
+
+    <h3 class="section">Reseñas del servicio</h3>
+    <div style="margin-bottom:14px;">${resenasHtml}</div>
+    <div class="form-block" style="margin-bottom:20px;">
+      <label>Tu calificación</label>
+      <div id="starPicker" style="font-size:26px; letter-spacing:4px; cursor:pointer;">☆☆☆☆☆</div>
+      <label for="comentarioInput" style="margin-top:10px;">Comentario (opcional)</label>
+      <textarea id="comentarioInput" rows="2" placeholder="¿Cómo fue el servicio?" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--line); font-family:'Inter',sans-serif; font-size:13px; resize:vertical;"></textarea>
+      <button class="submit-btn" id="enviarResenaBtn" style="margin-top:10px;">Enviar reseña</button>
+    </div>
+
+    <h3 class="section">Actualizar precios</h3>
+    <div class="form-block">
+      ${["regular","super","diesel"].map(k=>`
+        <label for="price-${k}" style="color:${k==='diesel'?'var(--green-dark)':'var(--red-dark)'};">${FUEL_LABELS[k]} (Q por galón)</label>
+        <input type="number" id="price-${k}" step="0.01" min="0" placeholder="${st.precios && st.precios[k] ? st.precios[k].valor.toFixed(2) : 'ej. 26.50'}">
+      `).join('')}
+      <p class="error" id="priceError">Ingresa al menos un precio válido mayor a cero.</p>
+      <button class="submit-btn" id="submitPrice">Enviar reporte</button>
+    </div>
+  `;
+
+  document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
+  document.getElementById('submitPrice').addEventListener('click', submitReport);
+  sheet.querySelectorAll('.confirm-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      confirmarPrecio(activeStation, btn.dataset.tipo);
+    });
+  });
+
+  document.getElementById('favToggle').addEventListener('click', ()=> alternarFavorito(st.id));
+
+  let estrellasElegidas = 0;
+  const starPicker = document.getElementById('starPicker');
+  starPicker.addEventListener('click', (e)=>{
+    const rect = starPicker.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    estrellasElegidas = Math.max(1, Math.min(5, Math.ceil(pct * 5)));
+    starPicker.textContent = '★'.repeat(estrellasElegidas) + '☆'.repeat(5 - estrellasElegidas);
+  });
+  document.getElementById('enviarResenaBtn').addEventListener('click', ()=>{
+    if(estrellasElegidas < 1){
+      toast("Toca las estrellas para calificar primero.");
+      return;
+    }
+    enviarResena(st.id, estrellasElegidas, document.getElementById('comentarioInput').value.trim());
+  });
+}
+
+async function alternarFavorito(id){
+  const favoritos = miPerfil.favoritos || [];
+  const yaEsta = favoritos.includes(id);
+  try{
+    await updateDoc(doc(db, "usuarios", miUid), {
+      favoritos: yaEsta ? favoritos.filter(f=>f!==id) : [...favoritos, id]
+    });
+    miPerfil.favoritos = yaEsta ? favoritos.filter(f=>f!==id) : [...favoritos, id];
+    toast(yaEsta ? "Quitada de favoritas." : "Agregada a favoritas.");
+    renderSheet();
+  }catch(e){
+    toast("No se pudo actualizar favoritas (" + (e.code || e.message || "error") + ").");
+  }
+}
+
+async function enviarResena(id, estrellas, comentario){
+  const resena = { estrellas, comentario, alias: miAlias || "anónimo", ts: Date.now() };
+  try{
+    await updateDoc(doc(db, "estaciones", id), { resenas: arrayUnion(resena) });
+    toast("¡Gracias por tu reseña!");
+    renderSheet();
+  }catch(e){
+    toast("No se pudo enviar la reseña (" + (e.code || e.message || "error") + ").");
+  }
+}
+
+async function confirmarPrecio(id, tipo){
+  const st = stations[id];
+  const actual = st.precios && st.precios[tipo];
+  if(!actual) return;
+  const ts = Date.now();
+  const updates = {};
+  updates['precios.' + tipo] = { valor: actual.valor, ts, reportadoPor: miAlias || "anónimo" };
+  updates['historial'] = arrayUnion({ tipo, valor: actual.valor, ts, reportadoPor: miAlias || "anónimo", confirmacion: true });
+  try{
+    await updateDoc(doc(db, "estaciones", id), updates);
+    toast("Gracias por confirmar el precio.");
+    closeSheet();
+  }catch(e){
+    toast("No se pudo confirmar (" + (e.code || e.message || "error") + ").");
+  }
+}
+
+async function submitReport(){
+  const errorEl = document.getElementById('priceError');
+  const fuels = ["regular","super","diesel"];
+  const entries = [];
+
+  for(const k of fuels){
+    const raw = document.getElementById('price-' + k).value;
+    if(raw === "") continue;
+    const val = parseFloat(raw);
+    if(isNaN(val) || val <= 0){
+      errorEl.textContent = "El precio de " + FUEL_LABELS[k].toLowerCase() + " no es válido.";
+      errorEl.style.display = 'block';
+      return;
+    }
+    entries.push({ tipo: k, valor: val });
+  }
+
+  if(!entries.length){
+    errorEl.textContent = "Ingresa al menos un precio válido mayor a cero.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  errorEl.style.display = 'none';
+
+  const btn = document.getElementById('submitPrice');
+  btn.disabled = true; btn.textContent = "Enviando…";
+
+  const ts = Date.now();
+  const stationId = activeStation;
+
+  // Cierra y limpia la pantalla de inmediato; Firestore confirma y, gracias a
+  // onSnapshot, la actualización llega sola (a este dispositivo y a los demás).
+  closeSheet();
+
+  const updates = {};
+  const historialNuevo = [];
+  for(const e of entries){
+    updates['precios.' + e.tipo] = { valor: e.valor, ts, reportadoPor: miAlias || "anónimo" };
+    historialNuevo.push({ tipo: e.tipo, valor: e.valor, ts, reportadoPor: miAlias || "anónimo" });
+  }
+  updates['historial'] = arrayUnion(...historialNuevo);
+
+  try{
+    await updateDoc(doc(db, "estaciones", stationId), updates);
+    toast("Reporte enviado. Gracias por actualizar " + entries.length + " precio(s).");
+  }catch(e){
+    toast("No se pudo enviar el reporte. Revisa tu conexión e intenta de nuevo.");
+  }
+}
+
+document.getElementById('overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'overlay') closeSheet();
+});
+document.getElementById('openReport').addEventListener('click', openReportFlow);
+document.getElementById('favoritesBtn').addEventListener('click', ()=>{
+  vistaActual = 'favoritos';
+  renderList();
+});
+
+document.getElementById('searchToggle').addEventListener('click', ()=>{
+  const box = document.getElementById('searchBox');
+  const abierto = box.style.display === 'flex';
+  box.style.display = abierto ? 'none' : 'flex';
+  document.getElementById('searchToggle').classList.toggle('active', !abierto);
+});
+document.getElementById('searchNombre').addEventListener('input', (e)=>{
+  busquedaNombre = e.target.value;
+  renderList();
+});
+document.getElementById('searchMin').addEventListener('input', (e)=>{
+  busquedaMin = e.target.value === '' ? null : parseFloat(e.target.value);
+  renderList();
+});
+document.getElementById('searchMax').addEventListener('input', (e)=>{
+  busquedaMax = e.target.value === '' ? null : parseFloat(e.target.value);
+  renderList();
+});
+
+document.getElementById('refreshBtn').addEventListener('click', ()=> toast("Ya estás recibiendo los precios en tiempo real."));
+document.getElementById('masterBtn').addEventListener('click', openMasterPanel);
+
+document.querySelectorAll('#sortChips .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    sortMode = chip.dataset.sort;
+    document.querySelectorAll('#sortChips .chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    if(sortMode === 'distancia' && !userLoc){
+      requestLocation();
+    }
+    renderList();
+  });
+});
+
+document.querySelectorAll('#fuelChips .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    fuelFilter = chip.dataset.fuel;
+    document.querySelectorAll('#fuelChips .chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    renderList();
+  });
+});
+
+renderDeptoList();
+renderMunicipioList();
+syncFromServer().then(iniciarEscuchaTiempoReal);
+requestLocation();
+iniciarAutenticacion();
+</script>
+</body>
+</html>
